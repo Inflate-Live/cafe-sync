@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   AppSettings, 
@@ -13,8 +12,7 @@ import {
   Rating
 } from '@/types';
 import { generateToken } from '@/lib/utils';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { useJsPDF } from '@/hooks/use-jsPDF';
 
 // Mock data for initial development
 const mockBranches: Branch[] = [
@@ -298,16 +296,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const checkInventoryLevels = () => {
-    // Update menu items based on inventory levels
     setMenuItems(prevItems => {
       return prevItems.map(item => {
         if (item.inventory) {
-          // Check if any ingredients are out of stock
           const hasOutOfStockIngredients = item.inventory.ingredients.some(
             ingredient => !ingredient.inStock
           );
           
-          // Update availability based on inventory
           if (hasOutOfStockIngredients || item.inventory.stockLevel === "out") {
             return { ...item, available: false };
           }
@@ -334,14 +329,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return ing;
           });
           
-          // Determine new stock level
           let stockLevel: "high" | "medium" | "low" | "out" = "high";
           const lowestStockIngredient = updatedIngredients.reduce(
             (lowest, current) => {
               if (!current.inStock) return { ...current, inStock: false };
               if (lowest.inStock === false) return lowest;
               
-              const currentPercentage = current.quantity / 100; // Example threshold
+              const currentPercentage = current.quantity / 100;
               const lowestPercentage = lowest.quantity / 100;
               
               return currentPercentage < lowestPercentage ? current : lowest;
@@ -421,18 +415,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
     });
     
-    // Find the order
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
     
-    // Update ratings for each menu item in the order
     order.items.forEach(orderItem => {
       const ratingId = Date.now().toString() + Math.random().toString(36).substring(2, 8);
       const newRating: Rating = {
         id: ratingId,
         menuItemId: orderItem.menuItemId,
         orderId,
-        customerId: order.customerName, // Using customer name as ID for simplicity
+        customerId: order.customerName,
         rating,
         comment,
         createdAt: new Date().toISOString()
@@ -473,7 +465,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       sortedItems.sort((a, b) => {
         const ratingA = a.averageRating || 0;
         const ratingB = b.averageRating || 0;
-        return order === "asc" ? ratingA - ratingB : ratingB - ratingA;
+        return order === "asc" ? ratingA - ratingB : ratingB - a;
       });
     }
     
@@ -481,13 +473,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const generatePDF = (receipt: Receipt) => {
-    const doc = new jsPDF();
+    const doc = useJsPDF();
     
-    // Add title
     doc.setFontSize(20);
     doc.text(`${appSettings.appName} - Receipt`, 105, 20, { align: 'center' });
     
-    // Add receipt details
     doc.setFontSize(12);
     doc.text(`Token: ${receipt.tokenNumber}`, 20, 40);
     doc.text(`Date: ${new Date(receipt.createdAt).toLocaleDateString()}`, 20, 50);
@@ -500,7 +490,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       doc.text(`Order Time: ${receipt.timeTaken}`, 20, 100);
     }
     
-    // Create a table for items
     const tableColumn = ["Item", "Price", "Quantity", "Total"];
     const tableRows = receipt.items.map(item => [
       item.name,
@@ -515,19 +504,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       startY: 110,
       theme: 'grid',
       styles: { fontSize: 10 },
-      headStyles: { fillColor: [139, 92, 246] }, // Purple color from the app theme
+      headStyles: { fillColor: [139, 92, 246] },
     });
     
-    // Add total
     const finalY = (doc as any).lastAutoTable.finalY + 10;
     doc.text(`Total: $${receipt.total.toFixed(2)}`, 150, finalY, { align: 'right' });
     
-    // Footer
     doc.setFontSize(10);
     doc.text(`Thank you for your order!`, 105, finalY + 20, { align: 'center' });
     doc.text(`${appSettings.appDescription}`, 105, finalY + 30, { align: 'center' });
     
-    // Save the PDF
     doc.save(`receipt_${receipt.tokenNumber}.pdf`);
   };
 
@@ -607,7 +593,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .map(([hour, orderCount]) => ({ hour, orderCount }))
       .sort((a, b) => b.orderCount - a.orderCount);
 
-    // New inventory alerts
     const inventoryAlerts = menuItems
       .filter(item => item.inventory && (item.inventory.stockLevel === "low" || item.inventory.stockLevel === "out"))
       .map(item => ({
@@ -615,7 +600,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         stockLevel: item.inventory!.stockLevel
       }));
 
-    // Top rated items
     const topRatedItems = [...menuItems]
       .filter(item => item.averageRating)
       .sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0))
@@ -707,7 +691,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     setOrders(prev => [...prev, newOrder]);
     
-    // Update inventory for ordered items
     orderData.items.forEach(item => {
       const menuItem = menuItems.find(mi => mi.id === item.menuItemId);
       if (menuItem && menuItem.inventory) {
@@ -715,7 +698,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           updateInventory(
             item.menuItemId,
             ingredient.id,
-            ingredient.quantity * item.quantity / 10 // Example calculation
+            ingredient.quantity * item.quantity / 10
           );
         });
       }

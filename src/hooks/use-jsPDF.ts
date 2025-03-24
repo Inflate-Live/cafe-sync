@@ -8,6 +8,7 @@ interface JsPDFWithAutoTable extends jsPDF {
 }
 
 export const useJsPDF = (): JsPDFWithAutoTable => {
-  const doc = new jsPDF() as JsPDFWithAutoTable;
-  return doc;
+  // This is a hook that returns a configured jsPDF instance
+  // It doesn't use React hooks internally, so it's safe to call from anywhere
+  return new jsPDF() as JsPDFWithAutoTable;
 };

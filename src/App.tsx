@@ -14,8 +14,8 @@ import RatingModal from "./components/feedback/rating-modal";
 import React from "react";
 
 const App = () => {
-  // Move QueryClient inside the component
-  const queryClient = new QueryClient();
+  // Create a new QueryClient instance inside the component to ensure proper React context
+  const [queryClient] = React.useState(() => new QueryClient());
 
   return (
     <QueryClientProvider client={queryClient}>
