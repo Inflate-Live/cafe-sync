@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
@@ -68,7 +67,6 @@ const Order = () => {
     items: OrderItem[];
   } | null>(null);
 
-  // Extract categories for the selected branch
   useEffect(() => {
     const branchMenuItems = menuItems.filter(
       item => item.branchId === selectedBranch && item.available
@@ -76,7 +74,6 @@ const Order = () => {
     const uniqueCategories = [...new Set(branchMenuItems.map(item => item.category))];
     setCategories(uniqueCategories);
     
-    // Set first category as active
     if (uniqueCategories.length > 0 && !activeCategory) {
       setActiveCategory(uniqueCategories[0]);
     }
@@ -147,7 +144,6 @@ const Order = () => {
       return;
     }
     
-    // Phone validation
     const phoneRegex = /^\+?[0-9]{10,15}$/;
     if (!phoneRegex.test(customerPhone)) {
       toast.error("Invalid phone number", {
@@ -156,7 +152,6 @@ const Order = () => {
       return;
     }
     
-    // Place the order
     const newOrder = addOrder({
       customerName,
       customerPhone,
@@ -166,18 +161,15 @@ const Order = () => {
       branchId: selectedBranch,
     });
     
-    // Show receipt
     setReceipt({
       tokenNumber: newOrder.tokenNumber,
       total: newOrder.total,
       items: newOrder.items,
     });
     
-    // Close checkout dialog and open receipt
     setCheckoutOpen(false);
     setReceiptOpen(true);
     
-    // Reset cart
     setCart([]);
     setCustomerName('');
     setCustomerPhone('');
@@ -187,7 +179,6 @@ const Order = () => {
     setReceiptOpen(false);
     setReceipt(null);
     
-    // Show toast confirmation
     hookToast({
       title: "Order placed successfully",
       description: `Your order token number is ${receipt?.tokenNumber}`,
@@ -399,7 +390,6 @@ const Order = () => {
         </div>
       </main>
       
-      {/* Checkout Dialog */}
       <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -467,7 +457,6 @@ const Order = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Receipt Dialog */}
       <Dialog open={receiptOpen} onOpenChange={setReceiptOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>

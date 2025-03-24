@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   AppSettings, 
@@ -125,7 +124,7 @@ interface AppContextType {
   updateMenuItem: (item: MenuItem) => void;
   deleteMenuItem: (id: string) => void;
   orders: Order[];
-  addOrder: (order: Omit<Order, "id" | "tokenNumber" | "createdAt" | "updatedAt" | "status">) => void;
+  addOrder: (order: Omit<Order, "id" | "tokenNumber" | "createdAt" | "updatedAt" | "status">) => Order;
   updateOrderStatus: (id: string, status: Order["status"], branchId: string) => void;
   receipts: Receipt[];
   selectedBranch: string;
@@ -147,7 +146,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedBranch, setSelectedBranch] = useState<string>(mockBranches[0].id);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Initialize dark mode from localStorage or system preference
   useEffect(() => {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const savedTheme = localStorage.getItem('theme');
@@ -175,7 +173,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  // Analytics data calculation
   const calculateAnalytics = (): AnalyticsData => {
     const completedOrders = orders.filter(order => order.status === "completed");
     const rejectedOrders = orders.filter(order => order.status === "rejected");
@@ -183,20 +180,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       order => order.status === "cooking" || order.status === "completed"
     );
 
-    // Calculate service time for completed orders
     const serviceTimes = completedOrders
       .filter(order => order.acceptedAt && order.completedAt)
       .map(order => {
         const acceptedTime = new Date(order.acceptedAt!).getTime();
         const completedTime = new Date(order.completedAt!).getTime();
-        return (completedTime - acceptedTime) / 60000; // in minutes
+        return (completedTime - acceptedTime) / 60000;
       });
 
     const avgServiceTime = serviceTimes.length 
       ? (serviceTimes.reduce((a, b) => a + b, 0) / serviceTimes.length).toFixed(1)
       : "0";
 
-    // Count items for most/least ordered
     const itemCounts = completedOrders
       .flatMap(order => order.items)
       .reduce((acc, item) => {
@@ -215,7 +210,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .sort((a, b) => a.count - b.count)
       .slice(0, 5);
 
-    // Find returning customers
     const customerCounts = completedOrders.reduce((acc, order) => {
       const key = `${order.customerName}-${order.customerPhone}`;
       acc[key] = (acc[key] || 0) + 1;
@@ -231,7 +225,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .sort((a, b) => b.orderCount - a.orderCount)
       .slice(0, 5);
 
-    // Payment trends over time (last 7 days)
     const lastWeek = Array.from({ length: 7 }, (_, i) => {
       const date = new Date();
       date.setDate(date.getDate() - i);
@@ -245,7 +238,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { date, amount };
     });
 
-    // Peak hours
     const hourCounts = completedOrders.reduce((acc, order) => {
       const hour = new Date(order.createdAt).getHours();
       const hourFormatted = `${hour % 12 || 12}${hour < 12 ? 'AM' : 'PM'}`;
@@ -274,7 +266,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>(calculateAnalytics());
 
-  // Refresh analytics whenever orders change
   const refreshAnalytics = () => {
     setAnalyticsData(calculateAnalytics());
   };
@@ -283,12 +274,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     refreshAnalytics();
   }, [orders]);
 
-  // Function to update app settings
   const updateAppSettings = (settings: Partial<AppSettings>) => {
     setAppSettings(prev => ({ ...prev, ...settings }));
   };
 
-  // Branch management functions
   const addBranch = (branch: Omit<Branch, "id">) => {
     const newBranch: Branch = {
       ...branch,
@@ -305,7 +294,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setBranches(prev => prev.filter(b => b.id !== id));
   };
 
-  // Menu item management functions
   const addMenuItem = (item: Omit<MenuItem, "id">) => {
     const newItem: MenuItem = {
       ...item,
@@ -322,7 +310,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setMenuItems(prev => prev.filter(i => i.id !== id));
   };
 
-  // Order management functions
   const addOrder = (orderData: Omit<Order, "id" | "tokenNumber" | "createdAt" | "updatedAt" | "status">) => {
     const now = new Date().toISOString();
     const tokenNumber = generateToken();
@@ -360,7 +347,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (status === "completed" && !order.completedAt) {
           updates.completedAt = now;
           
-          // Create receipt for completed order
           const completedOrder = {...order, ...updates, completedAt: now} as Order;
           const branch = branches.find(b => b.id === branchId);
           
