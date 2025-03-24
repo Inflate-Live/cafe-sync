@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   AppSettings, 
@@ -6,9 +7,14 @@ import {
   Order, 
   Receipt, 
   AnalyticsData,
-  PaymentMethod
+  PaymentMethod,
+  Inventory,
+  Ingredient,
+  Rating
 } from '@/types';
 import { generateToken } from '@/lib/utils';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 // Mock data for initial development
 const mockBranches: Branch[] = [
@@ -38,16 +44,111 @@ const mockBranches: Branch[] = [
   },
 ];
 
+const mockIngredients: Ingredient[] = [
+  { id: "1", name: "Coffee Beans", quantity: 5000, unit: "g", inStock: true },
+  { id: "2", name: "Milk", quantity: 10000, unit: "ml", inStock: true },
+  { id: "3", name: "Sugar", quantity: 3000, unit: "g", inStock: true },
+  { id: "4", name: "Flour", quantity: 5000, unit: "g", inStock: true },
+  { id: "5", name: "Butter", quantity: 2000, unit: "g", inStock: true },
+  { id: "6", name: "Blueberries", quantity: 400, unit: "g", inStock: true },
+  { id: "7", name: "Ice", quantity: 1000, unit: "g", inStock: true },
+];
+
+const mockInventory: Inventory[] = [
+  {
+    id: "1",
+    menuItemId: "1",
+    ingredients: [
+      { id: "1", name: "Coffee Beans", quantity: 20, unit: "g", inStock: true },
+      { id: "3", name: "Sugar", quantity: 10, unit: "g", inStock: true },
+    ],
+    stockLevel: "high",
+    lastUpdated: new Date().toISOString(),
+  },
+  {
+    id: "2",
+    menuItemId: "2",
+    ingredients: [
+      { id: "1", name: "Coffee Beans", quantity: 20, unit: "g", inStock: true },
+      { id: "2", name: "Milk", quantity: 150, unit: "ml", inStock: true },
+      { id: "3", name: "Sugar", quantity: 10, unit: "g", inStock: true },
+    ],
+    stockLevel: "medium",
+    lastUpdated: new Date().toISOString(),
+  },
+  {
+    id: "3",
+    menuItemId: "3",
+    ingredients: [
+      { id: "4", name: "Flour", quantity: 100, unit: "g", inStock: true },
+      { id: "5", name: "Butter", quantity: 50, unit: "g", inStock: true },
+    ],
+    stockLevel: "high",
+    lastUpdated: new Date().toISOString(),
+  },
+  {
+    id: "4",
+    menuItemId: "4",
+    ingredients: [
+      { id: "1", name: "Coffee Beans", quantity: 20, unit: "g", inStock: true },
+      { id: "2", name: "Milk", quantity: 200, unit: "ml", inStock: true },
+      { id: "3", name: "Sugar", quantity: 15, unit: "g", inStock: true },
+    ],
+    stockLevel: "low",
+    lastUpdated: new Date().toISOString(),
+  },
+  {
+    id: "5",
+    menuItemId: "5",
+    ingredients: [
+      { id: "4", name: "Flour", quantity: 100, unit: "g", inStock: true },
+      { id: "5", name: "Butter", quantity: 50, unit: "g", inStock: true },
+      { id: "6", name: "Blueberries", quantity: 80, unit: "g", inStock: true },
+    ],
+    stockLevel: "medium",
+    lastUpdated: new Date().toISOString(),
+  },
+  {
+    id: "6",
+    menuItemId: "6",
+    ingredients: [
+      { id: "1", name: "Coffee Beans", quantity: 25, unit: "g", inStock: true },
+      { id: "7", name: "Ice", quantity: 150, unit: "g", inStock: true },
+      { id: "3", name: "Sugar", quantity: 20, unit: "g", inStock: true },
+    ],
+    stockLevel: "high",
+    lastUpdated: new Date().toISOString(),
+  },
+];
+
+const mockRatings: Rating[] = [
+  { id: "1", menuItemId: "1", orderId: "1", customerId: "1", rating: 4, createdAt: new Date().toISOString() },
+  { id: "2", menuItemId: "2", orderId: "2", customerId: "2", rating: 5, createdAt: new Date().toISOString() },
+  { id: "3", menuItemId: "3", orderId: "3", customerId: "3", rating: 3, createdAt: new Date().toISOString() },
+  { id: "4", menuItemId: "4", orderId: "4", customerId: "4", rating: 4, createdAt: new Date().toISOString() },
+  { id: "5", menuItemId: "5", orderId: "5", customerId: "5", rating: 5, createdAt: new Date().toISOString() },
+  { id: "6", menuItemId: "6", orderId: "6", customerId: "6", rating: 4, createdAt: new Date().toISOString() },
+];
+
 const mockMenuItems: MenuItem[] = [
   {
     id: "1",
     name: "Espresso",
     description: "Strong, concentrated coffee served in small doses",
     price: 3.5,
+    discountedPrice: 2.45,
+    discount: {
+      percentage: 30,
+      code: "COFFEE30",
+      isPublic: true,
+    },
     imageUrl: "https://images.unsplash.com/photo-1510707577719-ae7544227e3c?q=80&w=1000&auto=format&fit=crop",
     category: "Coffee",
     available: true,
     branchId: "1",
+    inventory: mockInventory.find(i => i.menuItemId === "1"),
+    ratings: mockRatings.filter(r => r.menuItemId === "1"),
+    averageRating: 4,
   },
   {
     id: "2",
@@ -58,6 +159,9 @@ const mockMenuItems: MenuItem[] = [
     category: "Coffee",
     available: true,
     branchId: "1",
+    inventory: mockInventory.find(i => i.menuItemId === "2"),
+    ratings: mockRatings.filter(r => r.menuItemId === "2"),
+    averageRating: 5,
   },
   {
     id: "3",
@@ -68,6 +172,9 @@ const mockMenuItems: MenuItem[] = [
     category: "Pastry",
     available: true,
     branchId: "1",
+    inventory: mockInventory.find(i => i.menuItemId === "3"),
+    ratings: mockRatings.filter(r => r.menuItemId === "3"),
+    averageRating: 3,
   },
   {
     id: "4",
@@ -78,6 +185,9 @@ const mockMenuItems: MenuItem[] = [
     category: "Coffee",
     available: true,
     branchId: "2",
+    inventory: mockInventory.find(i => i.menuItemId === "4"),
+    ratings: mockRatings.filter(r => r.menuItemId === "4"),
+    averageRating: 4,
   },
   {
     id: "5",
@@ -88,6 +198,9 @@ const mockMenuItems: MenuItem[] = [
     category: "Pastry",
     available: true,
     branchId: "2",
+    inventory: mockInventory.find(i => i.menuItemId === "5"),
+    ratings: mockRatings.filter(r => r.menuItemId === "5"),
+    averageRating: 5,
   },
   {
     id: "6",
@@ -98,6 +211,9 @@ const mockMenuItems: MenuItem[] = [
     category: "Coffee",
     available: true,
     branchId: "3",
+    inventory: mockInventory.find(i => i.menuItemId === "6"),
+    ratings: mockRatings.filter(r => r.menuItemId === "6"),
+    averageRating: 4,
   },
 ];
 
@@ -110,6 +226,7 @@ const initialAppSettings: AppSettings = {
   defaultPaymentMethods: ["Cash"],
   kitchenPassword: "kitchen123",
   adminPassword: "admin123",
+  showNavbar: false,
 };
 
 interface AppContextType {
@@ -133,6 +250,13 @@ interface AppContextType {
   refreshAnalytics: () => void;
   isDarkMode: boolean;
   toggleTheme: () => void;
+  addDiscount: (itemId: string, percentage: number, code: string, isPublic: boolean) => void;
+  removeDiscount: (itemId: string) => void;
+  submitFeedback: (orderId: string, rating: number, comment?: string) => void;
+  generatePDF: (receipt: Receipt) => void;
+  sortMenuItems: (criteria: "price" | "rating", order: "asc" | "desc") => MenuItem[];
+  updateInventory: (menuItemId: string, ingredientId: string, quantity: number) => void;
+  checkInventoryLevels: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -171,6 +295,240 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return newValue;
     });
+  };
+
+  const checkInventoryLevels = () => {
+    // Update menu items based on inventory levels
+    setMenuItems(prevItems => {
+      return prevItems.map(item => {
+        if (item.inventory) {
+          // Check if any ingredients are out of stock
+          const hasOutOfStockIngredients = item.inventory.ingredients.some(
+            ingredient => !ingredient.inStock
+          );
+          
+          // Update availability based on inventory
+          if (hasOutOfStockIngredients || item.inventory.stockLevel === "out") {
+            return { ...item, available: false };
+          }
+        }
+        return item;
+      });
+    });
+  };
+
+  const updateInventory = (menuItemId: string, ingredientId: string, quantity: number) => {
+    setMenuItems(prevItems => {
+      return prevItems.map(item => {
+        if (item.id === menuItemId && item.inventory) {
+          const updatedIngredients = item.inventory.ingredients.map(ing => {
+            if (ing.id === ingredientId) {
+              const newQuantity = ing.quantity - quantity;
+              const inStock = newQuantity > 0;
+              return {
+                ...ing,
+                quantity: newQuantity,
+                inStock
+              };
+            }
+            return ing;
+          });
+          
+          // Determine new stock level
+          let stockLevel: "high" | "medium" | "low" | "out" = "high";
+          const lowestStockIngredient = updatedIngredients.reduce(
+            (lowest, current) => {
+              if (!current.inStock) return { ...current, inStock: false };
+              if (lowest.inStock === false) return lowest;
+              
+              const currentPercentage = current.quantity / 100; // Example threshold
+              const lowestPercentage = lowest.quantity / 100;
+              
+              return currentPercentage < lowestPercentage ? current : lowest;
+            },
+            updatedIngredients[0]
+          );
+          
+          if (!lowestStockIngredient.inStock) {
+            stockLevel = "out";
+          } else if (lowestStockIngredient.quantity < 30) {
+            stockLevel = "low";
+          } else if (lowestStockIngredient.quantity < 70) {
+            stockLevel = "medium";
+          }
+          
+          return {
+            ...item,
+            inventory: {
+              ...item.inventory,
+              ingredients: updatedIngredients,
+              stockLevel,
+              lastUpdated: new Date().toISOString()
+            },
+            available: stockLevel !== "out"
+          };
+        }
+        return item;
+      });
+    });
+  };
+
+  const addDiscount = (itemId: string, percentage: number, code: string, isPublic: boolean) => {
+    setMenuItems(prevItems => {
+      return prevItems.map(item => {
+        if (item.id === itemId) {
+          const discountedPrice = Number((item.price * (1 - percentage / 100)).toFixed(2));
+          return {
+            ...item,
+            discount: {
+              percentage,
+              code,
+              isPublic
+            },
+            discountedPrice
+          };
+        }
+        return item;
+      });
+    });
+  };
+
+  const removeDiscount = (itemId: string) => {
+    setMenuItems(prevItems => {
+      return prevItems.map(item => {
+        if (item.id === itemId) {
+          const { discount, discountedPrice, ...rest } = item;
+          return rest;
+        }
+        return item;
+      });
+    });
+  };
+
+  const submitFeedback = (orderId: string, rating: number, comment?: string) => {
+    setOrders(prevOrders => {
+      return prevOrders.map(order => {
+        if (order.id === orderId) {
+          return {
+            ...order,
+            feedback: {
+              rating,
+              comment
+            }
+          };
+        }
+        return order;
+      });
+    });
+    
+    // Find the order
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    
+    // Update ratings for each menu item in the order
+    order.items.forEach(orderItem => {
+      const ratingId = Date.now().toString() + Math.random().toString(36).substring(2, 8);
+      const newRating: Rating = {
+        id: ratingId,
+        menuItemId: orderItem.menuItemId,
+        orderId,
+        customerId: order.customerName, // Using customer name as ID for simplicity
+        rating,
+        comment,
+        createdAt: new Date().toISOString()
+      };
+      
+      setMenuItems(prevItems => {
+        return prevItems.map(item => {
+          if (item.id === orderItem.menuItemId) {
+            const currentRatings = item.ratings || [];
+            const updatedRatings = [...currentRatings, newRating];
+            const totalRating = updatedRatings.reduce((sum, r) => sum + r.rating, 0);
+            const averageRating = updatedRatings.length > 0 
+              ? Number((totalRating / updatedRatings.length).toFixed(1)) 
+              : 0;
+            
+            return {
+              ...item,
+              ratings: updatedRatings,
+              averageRating
+            };
+          }
+          return item;
+        });
+      });
+    });
+  };
+
+  const sortMenuItems = (criteria: "price" | "rating", order: "asc" | "desc") => {
+    const sortedItems = [...menuItems];
+    
+    if (criteria === "price") {
+      sortedItems.sort((a, b) => {
+        const priceA = a.discountedPrice || a.price;
+        const priceB = b.discountedPrice || b.price;
+        return order === "asc" ? priceA - priceB : priceB - priceA;
+      });
+    } else if (criteria === "rating") {
+      sortedItems.sort((a, b) => {
+        const ratingA = a.averageRating || 0;
+        const ratingB = b.averageRating || 0;
+        return order === "asc" ? ratingA - ratingB : ratingB - ratingA;
+      });
+    }
+    
+    return sortedItems;
+  };
+
+  const generatePDF = (receipt: Receipt) => {
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(20);
+    doc.text(`${appSettings.appName} - Receipt`, 105, 20, { align: 'center' });
+    
+    // Add receipt details
+    doc.setFontSize(12);
+    doc.text(`Token: ${receipt.tokenNumber}`, 20, 40);
+    doc.text(`Date: ${new Date(receipt.createdAt).toLocaleDateString()}`, 20, 50);
+    doc.text(`Customer: ${receipt.customerName}`, 20, 60);
+    doc.text(`Phone: ${receipt.customerPhone}`, 20, 70);
+    doc.text(`Branch: ${receipt.branchName}`, 20, 80);
+    doc.text(`Payment Method: ${receipt.paymentMethod}`, 20, 90);
+    
+    if (receipt.timeTaken) {
+      doc.text(`Order Time: ${receipt.timeTaken}`, 20, 100);
+    }
+    
+    // Create a table for items
+    const tableColumn = ["Item", "Price", "Quantity", "Total"];
+    const tableRows = receipt.items.map(item => [
+      item.name,
+      `$${item.price.toFixed(2)}`,
+      item.quantity.toString(),
+      `$${(item.price * item.quantity).toFixed(2)}`
+    ]);
+    
+    doc.autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 110,
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [139, 92, 246] }, // Purple color from the app theme
+    });
+    
+    // Add total
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    doc.text(`Total: $${receipt.total.toFixed(2)}`, 150, finalY, { align: 'right' });
+    
+    // Footer
+    doc.setFontSize(10);
+    doc.text(`Thank you for your order!`, 105, finalY + 20, { align: 'center' });
+    doc.text(`${appSettings.appDescription}`, 105, finalY + 30, { align: 'center' });
+    
+    // Save the PDF
+    doc.save(`receipt_${receipt.tokenNumber}.pdf`);
   };
 
   const calculateAnalytics = (): AnalyticsData => {
@@ -249,6 +607,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .map(([hour, orderCount]) => ({ hour, orderCount }))
       .sort((a, b) => b.orderCount - a.orderCount);
 
+    // New inventory alerts
+    const inventoryAlerts = menuItems
+      .filter(item => item.inventory && (item.inventory.stockLevel === "low" || item.inventory.stockLevel === "out"))
+      .map(item => ({
+        itemName: item.name,
+        stockLevel: item.inventory!.stockLevel
+      }));
+
+    // Top rated items
+    const topRatedItems = [...menuItems]
+      .filter(item => item.averageRating)
+      .sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0))
+      .slice(0, 5)
+      .map(item => ({
+        name: item.name,
+        rating: item.averageRating || 0
+      }));
+
     return {
       totalPayments: completedOrders.reduce((acc, order) => acc + order.total, 0),
       successfulPayments: completedOrders.length,
@@ -261,6 +637,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       returningCustomers,
       paymentTrends,
       peakHours,
+      inventoryAlerts,
+      topRatedItems
     };
   };
 
@@ -273,6 +651,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     refreshAnalytics();
   }, [orders]);
+
+  useEffect(() => {
+    checkInventoryLevels();
+  }, []);
 
   const updateAppSettings = (settings: Partial<AppSettings>) => {
     setAppSettings(prev => ({ ...prev, ...settings }));
@@ -324,6 +706,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     
     setOrders(prev => [...prev, newOrder]);
+    
+    // Update inventory for ordered items
+    orderData.items.forEach(item => {
+      const menuItem = menuItems.find(mi => mi.id === item.menuItemId);
+      if (menuItem && menuItem.inventory) {
+        menuItem.inventory.ingredients.forEach(ingredient => {
+          updateInventory(
+            item.menuItemId,
+            ingredient.id,
+            ingredient.quantity * item.quantity / 10 // Example calculation
+          );
+        });
+      }
+    });
     
     return newOrder;
   };
@@ -400,6 +796,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     refreshAnalytics,
     isDarkMode,
     toggleTheme,
+    addDiscount,
+    removeDiscount,
+    submitFeedback,
+    generatePDF,
+    sortMenuItems,
+    updateInventory,
+    checkInventoryLevels,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

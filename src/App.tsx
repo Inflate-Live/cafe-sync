@@ -10,6 +10,7 @@ import Order from "./pages/Order";
 import Kitchen from "./pages/Kitchen";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import RatingModal from "./components/feedback/rating-modal";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        <RatingModal />
       </TooltipProvider>
     </AppProvider>
   </QueryClientProvider>

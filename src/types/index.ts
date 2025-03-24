@@ -6,10 +6,45 @@ export interface MenuItem {
   name: string;
   description: string;
   price: number;
+  discountedPrice?: number;
+  discount?: {
+    percentage: number;
+    code: string;
+    isPublic: boolean;
+  };
   imageUrl?: string;
   category: string;
   available: boolean;
   branchId: string;
+  inventory?: Inventory;
+  ratings?: Rating[];
+  averageRating?: number;
+}
+
+export interface Inventory {
+  id: string;
+  menuItemId: string;
+  ingredients: Ingredient[];
+  stockLevel: "high" | "medium" | "low" | "out";
+  lastUpdated: string;
+}
+
+export interface Ingredient {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  inStock: boolean;
+}
+
+export interface Rating {
+  id: string;
+  menuItemId: string;
+  orderId: string;
+  customerId: string;
+  rating: number; // 1-5
+  comment?: string;
+  createdAt: string;
 }
 
 export interface Branch {
@@ -35,6 +70,10 @@ export interface Order {
   updatedAt: string;
   acceptedAt?: string;
   completedAt?: string;
+  feedback?: {
+    rating: number;
+    comment?: string;
+  };
 }
 
 export interface OrderItem {
@@ -69,6 +108,7 @@ export interface AppSettings {
   defaultPaymentMethods: PaymentMethod[];
   kitchenPassword: string;
   adminPassword: string;
+  showNavbar: boolean;
 }
 
 export interface AnalyticsData {
@@ -83,4 +123,6 @@ export interface AnalyticsData {
   returningCustomers: { name: string; phone: string; orderCount: number }[];
   paymentTrends: { date: string; amount: number }[];
   peakHours: { hour: string; orderCount: number }[];
+  inventoryAlerts?: { itemName: string; stockLevel: string }[];
+  topRatedItems?: { name: string; rating: number }[];
 }
