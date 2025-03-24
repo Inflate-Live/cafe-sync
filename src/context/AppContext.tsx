@@ -465,7 +465,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       sortedItems.sort((a, b) => {
         const ratingA = a.averageRating || 0;
         const ratingB = b.averageRating || 0;
-        return order === "asc" ? ratingA - ratingB : ratingB - a;
+        return order === "asc" ? ratingA - ratingB : ratingB - ratingA;
       });
     }
     
