@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   AppSettings, 
   Branch, 
@@ -13,8 +13,8 @@ import {
 } from '@/types';
 import { generateToken } from '@/lib/utils';
 import { useJsPDF } from '@/hooks/use-jsPDF';
+import { saveToFolder, getFromFolder, initializeStorage } from '@/lib/storage-utils';
 
-// Mock data for initial development
 const mockBranches: Branch[] = [
   {
     id: "1",
@@ -260,26 +260,53 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [appSettings, setAppSettings] = useState<AppSettings>(initialAppSettings);
-  const [branches, setBranches] = useState<Branch[]>(mockBranches);
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(mockMenuItems);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [receipts, setReceipts] = useState<Receipt[]>([]);
-  const [selectedBranch, setSelectedBranch] = useState<string>(mockBranches[0].id);
+  useEffect(() => {
+    initializeStorage();
+  }, []);
+
+  const [appSettings, setAppSettings] = useState<AppSettings>(
+    getFromFolder('settings', initialAppSettings)
+  );
+  const [branches, setBranches] = useState<Branch[]>(
+    getFromFolder('branches', mockBranches)
+  );
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(
+    getFromFolder('menu', mockMenuItems)
+  );
+  const [orders, setOrders] = useState<Order[]>(
+    getFromFolder('orders', [])
+  );
+  const [receipts, setReceipts] = useState<Receipt[]>(
+    getFromFolder('receipts', [])
+  );
+  const [selectedBranch, setSelectedBranch] = useState<string>(
+    localStorage.getItem('selectedBranch') || (branches.length > 0 ? branches[0].id : '')
+  );
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const savedTheme = localStorage.getItem('theme');
-    
-    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-      setIsDarkMode(true);
-      document.documentElement.classList.add('dark');
-    } else {
-      setIsDarkMode(false);
-      document.documentElement.classList.remove('dark');
-    }
-  }, []);
+    saveToFolder('settings', appSettings);
+  }, [appSettings]);
+
+  useEffect(() => {
+    saveToFolder('branches', branches);
+  }, [branches]);
+
+  useEffect(() => {
+    saveToFolder('menu', menuItems);
+  }, [menuItems]);
+
+  useEffect(() => {
+    saveToFolder('orders', orders);
+  }, [orders]);
+
+  useEffect(() => {
+    saveToFolder('receipts', receipts);
+  }, [receipts]);
+
+  useEffect(() => {
+    localStorage.setItem('selectedBranch', selectedBranch);
+  }, [selectedBranch]);
 
   const toggleTheme = () => {
     setIsDarkMode(prev => {
@@ -676,7 +703,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setMenuItems(prev => prev.filter(i => i.id !== id));
   };
 
-  const addOrder = (orderData: Omit<Order, "id" | "tokenNumber" | "createdAt" | "updatedAt" | "status">) => {
+  const addOrder = useCallback((orderData: Omit<Order, "id" | "tokenNumber" | "createdAt" | "updatedAt" | "status">) => {
     const now = new Date().toISOString();
     const tokenNumber = generateToken();
     
@@ -689,7 +716,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...orderData,
     };
     
-    setOrders(prev => [...prev, newOrder]);
+    setOrders(prev => {
+      const updatedOrders = [...prev, newOrder];
+      saveToFolder('orders', updatedOrders);
+      return updatedOrders;
+    });
     
     orderData.items.forEach(item => {
       const menuItem = menuItems.find(mi => mi.id === item.menuItemId);
@@ -705,13 +736,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
     
     return newOrder;
-  };
+  }, [menuItems]);
 
-  const updateOrderStatus = (id: string, status: Order["status"], branchId: string) => {
+  const updateOrderStatus = useCallback((id: string, status: Order["status"], branchId: string) => {
     const now = new Date().toISOString();
     
-    setOrders(prev => 
-      prev.map(order => {
+    setOrders(prev => {
+      const updatedOrders = prev.map(order => {
         if (order.id !== id) return order;
         
         const updates: Partial<Order> = {
@@ -749,14 +780,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               timeTaken,
             };
             
-            setReceipts(prev => [...prev, newReceipt]);
+            setReceipts(prevReceipts => {
+              const updatedReceipts = [...prevReceipts, newReceipt];
+              saveToFolder('receipts', updatedReceipts);
+              return updatedReceipts;
+            });
           }
         }
         
         return { ...order, ...updates };
-      })
-    );
-  };
+      });
+      
+      saveToFolder('orders', updatedOrders);
+      return updatedOrders;
+    });
+  }, [branches]);
 
   const value = {
     appSettings,
