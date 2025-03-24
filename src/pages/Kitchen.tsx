@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import Header from '@/components/layout/header';
 import Footer from '@/components/layout/footer';
@@ -48,6 +47,40 @@ const Kitchen = () => {
   const [password, setPassword] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('pending');
+  const [previousOrdersCount, setPreviousOrdersCount] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    audioRef.current = new Audio('/notification.mp3');
+    audioRef.current.onerror = () => {
+      if (audioRef.current) {
+        audioRef.current.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAASAAAeMwAUFBQUFCIiIiIiIjAwMDAwMD09PT09PT09PT09PT1LSUlJSUlJWFhYWFhYZmZmZmZmdnZ2dnZ2dnZ2dnZ2hoaGhoaGlpaWlpaWpKSkpKSksbGxsbGxsbGxsbGxwcHBwcHBzs7Ozs7O3d3d3d3d6urq6urq9PT09PT09PT09PT0//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAYHg/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/+0DEAANBmQVhtAAAIKiGdDbwAASQQ+C0MkGMQYuDtGJYg+NCIQgf/82cLBv/4Rzj/88CeWiECj/+7f//oMomM8OEbgQYRCuMx7r//rUIhQEkZvLrEQYuFCP//////4kBpMOAmICACaCYRG49GJE5QAUAJsR//7kG0AQZGIHg4YUICg6UVP/////9h2M2bnRMGAKbJ0wAL4AEJuAIBAyRyKM2U9nf///////MsCU+ZJK0l7AxJQXF60k5WJc2IyY8SjuQGBKZBhpABgkU8oDJJGVKHUEKCDwOo5Gwy2qbLKbLKTNKTLKUtqm0s0paXaXaXaWaXaWaW//80qbKTN6aqbSzSbS0y7S7SbS7S//s0u0s0m0s0u0u0s0u0s0u0s0u0u0s0u0u0s0u0u0s0u0s0u0u0s0u0u0v/+zS7S7S7S7SzS7S7S7S7S7S7S7S7S7S7S7S7S7S7S7S7S7S7S7S7S7S7S7S7S7S7/+0DEFAPUPPt5vPAACk2hrbeeBgJdLtLtLtLtLtLtLtLtLtLsulJmtU000zWaaaazSkmU0pMppSZTSmaaUmaaaUmaaDSZTSZppM00zTSZppMiSZJkmkmSZJpkmiZNJMmTJM0mSZJkmkmTJJkf/5pMmSZJpJkySZJkmSZJk//+SZJkyZJkymkmaZJpJmiZJkysZJlMyZJkmaUmU0pM0pJkmaaaaaaTNNJmmmaaaZppM0000zTSZpppp//+aaaZrSZpppmlJmlJmlJlNKTKaUmaaaaTNNJmmmaaazWmk//+aaaazTTTNNJmmmmmmaaUmaUmaUkzTS0v/+zSmkmaaaUmf/5pSZpSZpSmtJn/+TNKTNKTNaZ/9Jn/nBEoN2nx9NLNYAQAAAAAAAAAAAA//sQxE+D0AAAAH+HAAAIQAAAP8AAAAAAAA0gAAAAAA/4Eg5Ifg+D4Pg+D4AAAAB8HwfB8HwfP+CAIAgCAfP/BklXVHw+H4fwfB8H//B/4fh+H4fB8Hwf/8Hwf//wQBAEAQDgPnOXPC+CIIwtdRSDF4Q3AyT4MhcAf8HwfP///+oNQKmh///D4Pn///3XUkxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU=';
+      }
+    };
+    return () => {
+      if (audioRef.current) {
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const pendingOrdersCount = orders.filter(
+      order => order.branchId === selectedBranch && order.status === 'pending'
+    ).length;
+
+    if (pendingOrdersCount > previousOrdersCount && authenticated) {
+      if (audioRef.current) {
+        audioRef.current.play().catch(e => console.log("Audio play failed:", e));
+        toast({
+          title: "New Order Received",
+          description: "A new order has been placed",
+        });
+      }
+    }
+
+    setPreviousOrdersCount(pendingOrdersCount);
+  }, [orders, selectedBranch, authenticated]);
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +108,6 @@ const Kitchen = () => {
     });
   };
   
-  // Filter orders by branch and status
   const pendingOrders = orders.filter(
     order => order.branchId === selectedBranch && order.status === 'pending'
   );
@@ -206,7 +238,6 @@ const Kitchen = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full"
                   />
-                  <p className="text-xs text-muted-foreground mt-2">Default password: kitchen123</p>
                 </div>
                 
                 <Button type="submit" className="w-full">

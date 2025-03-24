@@ -33,12 +33,9 @@ const Header: React.FC = () => {
       <div className="container mx-auto px-4 flex justify-between items-center">
         <Logo />
         
-        {/* Desktop Navigation */}
+        {/* Desktop Navigation - Modified to only show Home */}
         <nav className="hidden md:flex items-center space-x-1">
           <NavLink to="/">Home</NavLink>
-          <NavLink to="/order">Order</NavLink>
-          <NavLink to="/kitchen">Kitchen</NavLink>
-          <NavLink to="/admin">Admin</NavLink>
         </nav>
 
         {/* Mobile Menu Button */}
@@ -51,7 +48,7 @@ const Header: React.FC = () => {
         </button>
       </div>
 
-      {/* Mobile Navigation */}
+      {/* Mobile Navigation - Modified to only show Home */}
       <div 
         className={`fixed inset-0 bg-background/95 backdrop-blur-lg z-40 transition-all duration-300 md:hidden ${
           isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
@@ -60,9 +57,6 @@ const Header: React.FC = () => {
       >
         <nav className="flex flex-col p-6 space-y-4">
           <NavLink to="/" onClick={closeMenu}>Home</NavLink>
-          <NavLink to="/order" onClick={closeMenu}>Order</NavLink>
-          <NavLink to="/kitchen" onClick={closeMenu}>Kitchen</NavLink>
-          <NavLink to="/admin" onClick={closeMenu}>Admin</NavLink>
         </nav>
       </div>
     </header>
