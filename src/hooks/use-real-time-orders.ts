@@ -2,12 +2,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Order } from '@/types';
 import { useAppContext } from '@/context/AppContext';
+import { subscribeToFolder } from '@/lib/storage-utils';
 
 /**
  * Hook for real-time order updates in the Kitchen page
  */
 export const useRealTimeOrders = (branchId: string) => {
-  const { orders } = useAppContext();
+  const { orders, refreshOrders } = useAppContext();
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [cookingOrders, setCookingOrders] = useState<Order[]>([]);
   const [completedOrders, setCompletedOrders] = useState<Order[]>([]);
@@ -15,7 +16,8 @@ export const useRealTimeOrders = (branchId: string) => {
   const [newOrderReceived, setNewOrderReceived] = useState(false);
   const previousPendingCount = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
+  
+  // Initialize audio when component mounts
   useEffect(() => {
     // Initialize audio
     audioRef.current = new Audio('/notification.mp3');
@@ -30,6 +32,29 @@ export const useRealTimeOrders = (branchId: string) => {
       }
     };
   }, []);
+
+  // Setup subscription to orders
+  useEffect(() => {
+    // Call refreshOrders initially to ensure we have the latest data
+    refreshOrders();
+
+    // Set up a subscription to the orders folder
+    const unsubscribe = subscribeToFolder<Order[]>(
+      'orders',
+      (latestOrders) => {
+        // This callback will be called whenever the orders data changes
+        if (latestOrders && latestOrders.length > 0) {
+          // Update the app context with the latest orders
+          refreshOrders();
+        }
+      },
+      [],
+      2000 // Check for updates every 2 seconds
+    );
+
+    // Cleanup subscription on unmount
+    return unsubscribe;
+  }, [refreshOrders]);
 
   // Update order lists when orders change
   useEffect(() => {

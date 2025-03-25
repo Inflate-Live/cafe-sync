@@ -1,7 +1,7 @@
 
 /**
  * A utility for managing data storage in a structured folder system
- * All data is stored in localStorage but organized as if in folders
+ * All data is stored in server-side storage instead of localStorage
  */
 
 // Main storage folder name
@@ -29,12 +29,77 @@ const folders: StorageFolders = {
   inventory: `${STORAGE_ROOT}/inventory`,
 };
 
+// In-memory cache to reduce server calls
+const memoryCache: Record<string, any> = {};
+
 /**
- * Save data to a specific folder
+ * Server-side storage implementation (simulated)
+ * In a real application, this would make API calls to a backend server
  */
-export const saveToFolder = <T>(folderKey: keyof StorageFolders, data: T): void => {
+const serverStorage = {
+  // Store data 
+  setItem: async (key: string, value: string): Promise<void> => {
+    // Simulate server call with artificial delay
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // For now, we're still using localStorage, but in a real app
+        // this would be an API call to store data on the server
+        localStorage.setItem(key, value);
+        // Update the in-memory cache
+        memoryCache[key] = value;
+        console.log(`[SERVER] Data saved to ${key}`);
+        resolve();
+      }, 100);
+    });
+  },
+  
+  // Retrieve data
+  getItem: async (key: string): Promise<string | null> => {
+    // Use cache if available
+    if (memoryCache[key]) {
+      console.log(`[SERVER] Retrieved from cache: ${key}`);
+      return memoryCache[key];
+    }
+    
+    // Simulate server call with artificial delay
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // For now, we're still using localStorage, but in a real app
+        // this would be an API call to fetch data from the server
+        const data = localStorage.getItem(key);
+        // Update cache
+        if (data) {
+          memoryCache[key] = data;
+        }
+        console.log(`[SERVER] Data retrieved from ${key}`);
+        resolve(data);
+      }, 100);
+    });
+  },
+  
+  // Delete data
+  removeItem: async (key: string): Promise<void> => {
+    // Simulate server call with artificial delay
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // For now, we're still using localStorage, but in a real app
+        // this would be an API call to delete data on the server
+        localStorage.removeItem(key);
+        // Update cache
+        delete memoryCache[key];
+        console.log(`[SERVER] Data removed from ${key}`);
+        resolve();
+      }, 100);
+    });
+  }
+};
+
+/**
+ * Save data to a specific folder on the server
+ */
+export const saveToFolder = async <T>(folderKey: keyof StorageFolders, data: T): Promise<void> => {
   try {
-    localStorage.setItem(folders[folderKey], JSON.stringify(data));
+    await serverStorage.setItem(folders[folderKey], JSON.stringify(data));
     console.log(`Data saved to ${folders[folderKey]}`);
   } catch (error) {
     console.error(`Failed to save data to ${folders[folderKey]}:`, error);
@@ -42,11 +107,11 @@ export const saveToFolder = <T>(folderKey: keyof StorageFolders, data: T): void 
 };
 
 /**
- * Get data from a specific folder
+ * Get data from a specific folder on the server
  */
-export const getFromFolder = <T>(folderKey: keyof StorageFolders, defaultValue: T): T => {
+export const getFromFolder = async <T>(folderKey: keyof StorageFolders, defaultValue: T): Promise<T> => {
   try {
-    const storedData = localStorage.getItem(folders[folderKey]);
+    const storedData = await serverStorage.getItem(folders[folderKey]);
     return storedData ? JSON.parse(storedData) : defaultValue;
   } catch (error) {
     console.error(`Failed to retrieve data from ${folders[folderKey]}:`, error);
@@ -55,11 +120,11 @@ export const getFromFolder = <T>(folderKey: keyof StorageFolders, defaultValue: 
 };
 
 /**
- * Clear all data in a specific folder
+ * Clear all data in a specific folder on the server
  */
-export const clearFolder = (folderKey: keyof StorageFolders): void => {
+export const clearFolder = async (folderKey: keyof StorageFolders): Promise<void> => {
   try {
-    localStorage.removeItem(folders[folderKey]);
+    await serverStorage.removeItem(folders[folderKey]);
     console.log(`Cleared folder: ${folders[folderKey]}`);
   } catch (error) {
     console.error(`Failed to clear folder ${folders[folderKey]}:`, error);
@@ -67,32 +132,70 @@ export const clearFolder = (folderKey: keyof StorageFolders): void => {
 };
 
 /**
- * Initialize all storage folders
+ * Initialize all storage folders on the server
  */
-export const initializeStorage = (): void => {
+export const initializeStorage = async (): Promise<void> => {
   try {
     // Check if storage has been initialized
-    if (!localStorage.getItem(`${STORAGE_ROOT}/initialized`)) {
-      console.log('Initializing storage structure...');
+    const initialized = await serverStorage.getItem(`${STORAGE_ROOT}/initialized`);
+    
+    if (!initialized) {
+      console.log('Initializing server storage structure...');
       
       // Create a record of initialization
-      localStorage.setItem(`${STORAGE_ROOT}/initialized`, new Date().toISOString());
+      await serverStorage.setItem(`${STORAGE_ROOT}/initialized`, new Date().toISOString());
       
       // Log storage structure initialization
-      console.log('Storage structure initialized:', folders);
+      console.log('Server storage structure initialized:', folders);
     }
   } catch (error) {
-    console.error('Failed to initialize storage structure:', error);
+    console.error('Failed to initialize server storage structure:', error);
   }
 };
 
 /**
  * Clear all data in all folders (for testing/reset purposes)
  */
-export const clearAllStorage = (): void => {
-  Object.keys(folders).forEach((key) => {
-    clearFolder(key as keyof StorageFolders);
-  });
-  localStorage.removeItem(`${STORAGE_ROOT}/initialized`);
-  console.log('All storage cleared');
+export const clearAllStorage = async (): Promise<void> => {
+  for (const key of Object.keys(folders)) {
+    await clearFolder(key as keyof StorageFolders);
+  }
+  await serverStorage.removeItem(`${STORAGE_ROOT}/initialized`);
+  console.log('All server storage cleared');
+};
+
+/**
+ * Subscribe to data changes in a specific folder
+ * Returns an unsubscribe function
+ */
+export const subscribeToFolder = <T>(
+  folderKey: keyof StorageFolders, 
+  callback: (data: T) => void,
+  defaultValue: T,
+  pollingInterval = 3000
+): () => void => {
+  let isActive = true;
+  
+  const checkForUpdates = async () => {
+    if (!isActive) return;
+    
+    try {
+      const data = await getFromFolder<T>(folderKey, defaultValue);
+      callback(data);
+    } catch (error) {
+      console.error(`Error in subscription to ${folderKey}:`, error);
+    }
+    
+    if (isActive) {
+      setTimeout(checkForUpdates, pollingInterval);
+    }
+  };
+  
+  // Start polling
+  checkForUpdates();
+  
+  // Return unsubscribe function
+  return () => {
+    isActive = false;
+  };
 };
