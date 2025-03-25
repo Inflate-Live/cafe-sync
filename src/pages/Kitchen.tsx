@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import Header from '@/components/layout/header';
 import Footer from '@/components/layout/footer';
@@ -28,7 +28,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Clock, Check, X, Lock, Bell } from 'lucide-react';
+import { Clock, Check, X, Lock, Bell, RefreshCw } from 'lucide-react';
 import { formatCurrency, formatDate, calculateTimeDifference } from '@/lib/utils';
 import { Order } from '@/types';
 import { useRealTimeOrders } from '@/hooks/use-real-time-orders';
@@ -42,15 +42,17 @@ const Kitchen = () => {
     selectedBranch,
     setSelectedBranch,
     isDarkMode,
-    toggleTheme
+    toggleTheme,
+    refreshOrders
   } = useAppContext();
   const { toast } = useToast();
   
   const [password, setPassword] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('pending');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Use our new real-time orders hook
+  // Use our improved real-time orders hook
   const {
     pendingOrders,
     cookingOrders,
@@ -59,15 +61,20 @@ const Kitchen = () => {
     newOrderReceived
   } = useRealTimeOrders(selectedBranch);
 
-  // Show a toast notification when new orders arrive
-  React.useEffect(() => {
+  // Auto-switch to pending tab when new orders arrive
+  useEffect(() => {
     if (newOrderReceived && authenticated) {
-      sonnerToast("New Order Received", {
-        description: "A new order has been placed",
-        icon: <Bell className="h-4 w-4" />,
-      });
+      setActiveTab('pending');
     }
   }, [newOrderReceived, authenticated]);
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshOrders();
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 800);
+  };
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,24 +231,36 @@ const Kitchen = () => {
                   <p className="text-muted-foreground">Manage all incoming orders from this dashboard.</p>
                 </div>
                 
-                <Select 
-                  value={selectedBranch} 
-                  onValueChange={setSelectedBranch}
-                >
-                  <SelectTrigger className="w-[220px]">
-                    <SelectValue placeholder="Select branch" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {branches
-                      .filter(branch => branch.isActive)
-                      .map(branch => (
-                        <SelectItem key={branch.id} value={branch.id}>
-                          {branch.name}
-                        </SelectItem>
-                      ))
-                    }
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-3">
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={handleManualRefresh} 
+                    className={isRefreshing ? "animate-spin" : ""}
+                    title="Refresh Orders"
+                  >
+                    <RefreshCw className="h-5 w-5" />
+                  </Button>
+                  
+                  <Select 
+                    value={selectedBranch} 
+                    onValueChange={setSelectedBranch}
+                  >
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="Select branch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {branches
+                        .filter(branch => branch.isActive)
+                        .map(branch => (
+                          <SelectItem key={branch.id} value={branch.id}>
+                            {branch.name}
+                          </SelectItem>
+                        ))
+                      }
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               
               <Tabs value={activeTab} onValueChange={setActiveTab}>
