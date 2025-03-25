@@ -1,7 +1,7 @@
 
 /**
  * A utility for managing data storage in a structured server-side folder system
- * All data is stored in server memory instead of localStorage
+ * All data is stored in server memory or Electron file system instead of localStorage
  */
 
 // Main storage folder name
@@ -29,9 +29,29 @@ const folders: StorageFolders = {
   inventory: `${STORAGE_ROOT}/inventory`,
 };
 
-// Server-side storage implementation (in-memory)
-const serverStorage = (() => {
-  // Use a closure to create a private in-memory database
+// Check if Electron API is available
+const isElectron = () => {
+  return window && window.electronAPI;
+};
+
+// Storage implementation (Electron or in-memory)
+const storage = (() => {
+  // For Electron, use the file system through IPC
+  if (isElectron()) {
+    return {
+      setItem: async (key: string, value: string): Promise<void> => {
+        await window.electronAPI.storage.setItem(key, value);
+      },
+      getItem: async (key: string): Promise<string | null> => {
+        return await window.electronAPI.storage.getItem(key);
+      },
+      removeItem: async (key: string): Promise<void> => {
+        await window.electronAPI.storage.removeItem(key);
+      }
+    };
+  }
+  
+  // In-memory storage for web version
   const storageData: Record<string, string> = {};
   
   return {
@@ -78,7 +98,7 @@ const serverStorage = (() => {
  */
 export const saveToFolder = async <T>(folderKey: keyof StorageFolders, data: T): Promise<void> => {
   try {
-    await serverStorage.setItem(folders[folderKey], JSON.stringify(data));
+    await storage.setItem(folders[folderKey], JSON.stringify(data));
     console.log(`Data saved to ${folders[folderKey]}`);
   } catch (error) {
     console.error(`Failed to save data to ${folders[folderKey]}:`, error);
@@ -90,7 +110,7 @@ export const saveToFolder = async <T>(folderKey: keyof StorageFolders, data: T):
  */
 export const getFromFolder = async <T>(folderKey: keyof StorageFolders, defaultValue: T): Promise<T> => {
   try {
-    const storedData = await serverStorage.getItem(folders[folderKey]);
+    const storedData = await storage.getItem(folders[folderKey]);
     return storedData ? JSON.parse(storedData) : defaultValue;
   } catch (error) {
     console.error(`Failed to retrieve data from ${folders[folderKey]}:`, error);
@@ -103,7 +123,7 @@ export const getFromFolder = async <T>(folderKey: keyof StorageFolders, defaultV
  */
 export const clearFolder = async (folderKey: keyof StorageFolders): Promise<void> => {
   try {
-    await serverStorage.removeItem(folders[folderKey]);
+    await storage.removeItem(folders[folderKey]);
     console.log(`Cleared folder: ${folders[folderKey]}`);
   } catch (error) {
     console.error(`Failed to clear folder ${folders[folderKey]}:`, error);
@@ -116,19 +136,19 @@ export const clearFolder = async (folderKey: keyof StorageFolders): Promise<void
 export const initializeStorage = async (): Promise<void> => {
   try {
     // Check if storage has been initialized
-    const initialized = await serverStorage.getItem(`${STORAGE_ROOT}/initialized`);
+    const initialized = await storage.getItem(`${STORAGE_ROOT}/initialized`);
     
     if (!initialized) {
-      console.log('Initializing server storage structure...');
+      console.log('Initializing storage structure...');
       
       // Create a record of initialization
-      await serverStorage.setItem(`${STORAGE_ROOT}/initialized`, new Date().toISOString());
+      await storage.setItem(`${STORAGE_ROOT}/initialized`, new Date().toISOString());
       
       // Log storage structure initialization
-      console.log('Server storage structure initialized:', folders);
+      console.log('Storage structure initialized:', folders);
     }
   } catch (error) {
-    console.error('Failed to initialize server storage structure:', error);
+    console.error('Failed to initialize storage structure:', error);
   }
 };
 
@@ -139,8 +159,8 @@ export const clearAllStorage = async (): Promise<void> => {
   for (const key of Object.keys(folders)) {
     await clearFolder(key as keyof StorageFolders);
   }
-  await serverStorage.removeItem(`${STORAGE_ROOT}/initialized`);
-  console.log('All server storage cleared');
+  await storage.removeItem(`${STORAGE_ROOT}/initialized`);
+  console.log('All storage cleared');
 };
 
 // In-memory cache for subscriptions to reduce polling loads

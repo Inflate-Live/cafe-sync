@@ -1,0 +1,38 @@
+
+{
+  "appId": "com.cafe-verse-sync.app",
+  "productName": "Cafe Verse Sync",
+  "directories": {
+    "output": "release/"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*"
+  ],
+  "dmg": {
+    "contents": [
+      {
+        "x": 130,
+        "y": 220
+      },
+      {
+        "x": 410,
+        "y": 220,
+        "type": "link",
+        "path": "/Applications"
+      }
+    ]
+  },
+  "win": {
+    "target": [
+      "nsis"
+    ]
+  },
+  "linux": {
+    "target": [
+      "deb",
+      "AppImage"
+    ],
+    "category": "Office"
+  }
+}
