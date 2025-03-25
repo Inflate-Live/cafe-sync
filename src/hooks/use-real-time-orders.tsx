@@ -105,7 +105,7 @@ export const useRealTimeOrders = (branchId: string) => {
         audioRef.current.play().catch(e => console.log("Audio play failed:", e));
       }
       
-      // Show toast notification
+      // Show toast notification - Fix the JSX syntax issue
       const newOrdersCount = currentPendingCount - previousPendingCount.current;
       toast(`${newOrdersCount} New Order${newOrdersCount > 1 ? 's' : ''} Received`, {
         description: "Check the pending orders tab",
