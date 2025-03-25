@@ -246,6 +246,7 @@ interface AppContextType {
   setSelectedBranch: (id: string) => void;
   analyticsData: AnalyticsData;
   refreshAnalytics: () => void;
+  refreshOrders: () => void;
   isDarkMode: boolean;
   toggleTheme: () => void;
   addDiscount: (itemId: string, percentage: number, code: string, isPublic: boolean) => void;
@@ -264,49 +265,100 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     initializeStorage();
   }, []);
 
-  const [appSettings, setAppSettings] = useState<AppSettings>(
-    getFromFolder('settings', initialAppSettings)
-  );
-  const [branches, setBranches] = useState<Branch[]>(
-    getFromFolder('branches', mockBranches)
-  );
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(
-    getFromFolder('menu', mockMenuItems)
-  );
-  const [orders, setOrders] = useState<Order[]>(
-    getFromFolder('orders', [])
-  );
-  const [receipts, setReceipts] = useState<Receipt[]>(
-    getFromFolder('receipts', [])
-  );
+  const [appSettings, setAppSettings] = useState<AppSettings>(initialAppSettings);
+  const [branches, setBranches] = useState<Branch[]>(mockBranches);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(mockMenuItems);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<string>(
-    localStorage.getItem('selectedBranch') || (branches.length > 0 ? branches[0].id : '')
+    localStorage.getItem('selectedBranch') || (mockBranches.length > 0 ? mockBranches[0].id : '')
   );
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    saveToFolder('settings', appSettings);
-  }, [appSettings]);
+    const initializeData = async () => {
+      try {
+        setIsLoading(true);
+        
+        const storedSettings = await getFromFolder<AppSettings>('settings', initialAppSettings);
+        setAppSettings(storedSettings);
+        
+        const storedBranches = await getFromFolder<Branch[]>('branches', mockBranches);
+        setBranches(storedBranches);
+        
+        const storedMenuItems = await getFromFolder<MenuItem[]>('menu', mockMenuItems);
+        setMenuItems(storedMenuItems);
+        
+        const storedOrders = await getFromFolder<Order[]>('orders', []);
+        setOrders(Array.isArray(storedOrders) ? storedOrders : []);
+        
+        const storedReceipts = await getFromFolder<Receipt[]>('receipts', []);
+        setReceipts(Array.isArray(storedReceipts) ? storedReceipts : []);
+        
+        const savedBranch = localStorage.getItem('selectedBranch');
+        if (savedBranch) {
+          setSelectedBranch(savedBranch);
+        } else if (storedBranches.length > 0) {
+          setSelectedBranch(storedBranches[0].id);
+        }
+      } catch (error) {
+        console.error("Failed to initialize data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    initializeData();
+  }, []);
 
   useEffect(() => {
-    saveToFolder('branches', branches);
-  }, [branches]);
+    if (!isLoading) {
+      saveToFolder('settings', appSettings);
+    }
+  }, [appSettings, isLoading]);
 
   useEffect(() => {
-    saveToFolder('menu', menuItems);
-  }, [menuItems]);
+    if (!isLoading) {
+      saveToFolder('branches', branches);
+    }
+  }, [branches, isLoading]);
 
   useEffect(() => {
-    saveToFolder('orders', orders);
-  }, [orders]);
+    if (!isLoading) {
+      saveToFolder('menu', menuItems);
+    }
+  }, [menuItems, isLoading]);
 
   useEffect(() => {
-    saveToFolder('receipts', receipts);
-  }, [receipts]);
+    if (!isLoading) {
+      saveToFolder('orders', orders);
+    }
+  }, [orders, isLoading]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      saveToFolder('receipts', receipts);
+    }
+  }, [receipts, isLoading]);
 
   useEffect(() => {
     localStorage.setItem('selectedBranch', selectedBranch);
   }, [selectedBranch]);
+
+  const refreshOrders = useCallback(async () => {
+    try {
+      const latestOrders = await getFromFolder<Order[]>('orders', []);
+      if (Array.isArray(latestOrders)) {
+        setOrders(latestOrders);
+      } else {
+        console.error("Orders data is not an array:", latestOrders);
+        setOrders([]);
+      }
+    } catch (error) {
+      console.error("Failed to refresh orders:", error);
+    }
+  }, []);
 
   const toggleTheme = () => {
     setIsDarkMode(prev => {
@@ -499,55 +551,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return sortedItems;
   };
 
-  const generatePDF = (receipt: Receipt) => {
-    const doc = useJsPDF();
+  const calculateAnalytics = useCallback((): AnalyticsData => {
+    const safeOrders = Array.isArray(orders) ? orders : [];
     
-    doc.setFontSize(20);
-    doc.text(`${appSettings.appName} - Receipt`, 105, 20, { align: 'center' });
-    
-    doc.setFontSize(12);
-    doc.text(`Token: ${receipt.tokenNumber}`, 20, 40);
-    doc.text(`Date: ${new Date(receipt.createdAt).toLocaleDateString()}`, 20, 50);
-    doc.text(`Customer: ${receipt.customerName}`, 20, 60);
-    doc.text(`Phone: ${receipt.customerPhone}`, 20, 70);
-    doc.text(`Branch: ${receipt.branchName}`, 20, 80);
-    doc.text(`Payment Method: ${receipt.paymentMethod}`, 20, 90);
-    
-    if (receipt.timeTaken) {
-      doc.text(`Order Time: ${receipt.timeTaken}`, 20, 100);
-    }
-    
-    const tableColumn = ["Item", "Price", "Quantity", "Total"];
-    const tableRows = receipt.items.map(item => [
-      item.name,
-      `$${item.price.toFixed(2)}`,
-      item.quantity.toString(),
-      `$${(item.price * item.quantity).toFixed(2)}`
-    ]);
-    
-    doc.autoTable({
-      head: [tableColumn],
-      body: tableRows,
-      startY: 110,
-      theme: 'grid',
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [139, 92, 246] },
-    });
-    
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
-    doc.text(`Total: $${receipt.total.toFixed(2)}`, 150, finalY, { align: 'right' });
-    
-    doc.setFontSize(10);
-    doc.text(`Thank you for your order!`, 105, finalY + 20, { align: 'center' });
-    doc.text(`${appSettings.appDescription}`, 105, finalY + 30, { align: 'center' });
-    
-    doc.save(`receipt_${receipt.tokenNumber}.pdf`);
-  };
-
-  const calculateAnalytics = (): AnalyticsData => {
-    const completedOrders = orders.filter(order => order.status === "completed");
-    const rejectedOrders = orders.filter(order => order.status === "rejected");
-    const acceptedOrders = orders.filter(
+    const completedOrders = safeOrders.filter(order => order.status === "completed");
+    const rejectedOrders = safeOrders.filter(order => order.status === "rejected");
+    const acceptedOrders = safeOrders.filter(
       order => order.status === "cooking" || order.status === "completed"
     );
 
@@ -651,21 +660,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       inventoryAlerts,
       topRatedItems
     };
-  };
+  }, [orders, menuItems]);
 
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>(calculateAnalytics());
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
+    totalPayments: 0,
+    successfulPayments: 0,
+    completedOrders: 0,
+    rejectedOrders: 0,
+    acceptedOrders: 0,
+    averageServiceTime: "0 mins",
+    mostOrderedItems: [],
+    leastOrderedItems: [],
+    returningCustomers: [],
+    paymentTrends: [],
+    peakHours: [],
+    inventoryAlerts: [],
+    topRatedItems: []
+  });
 
-  const refreshAnalytics = () => {
+  const refreshAnalytics = useCallback(() => {
     setAnalyticsData(calculateAnalytics());
-  };
+  }, [calculateAnalytics]);
 
   useEffect(() => {
-    refreshAnalytics();
-  }, [orders]);
+    if (!isLoading) {
+      refreshAnalytics();
+    }
+  }, [orders, isLoading, refreshAnalytics]);
 
   useEffect(() => {
-    checkInventoryLevels();
-  }, []);
+    if (!isLoading) {
+      checkInventoryLevels();
+    }
+  }, [isLoading]);
 
   const updateAppSettings = (settings: Partial<AppSettings>) => {
     setAppSettings(prev => ({ ...prev, ...settings }));
@@ -796,6 +823,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   }, [branches]);
 
+  const generatePDF = (receipt: Receipt) => {
+    const doc = useJsPDF();
+    
+    doc.setFontSize(20);
+    doc.text(`${appSettings.appName} - Receipt`, 105, 20, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.text(`Token: ${receipt.tokenNumber}`, 20, 40);
+    doc.text(`Date: ${new Date(receipt.createdAt).toLocaleDateString()}`, 20, 50);
+    doc.text(`Customer: ${receipt.customerName}`, 20, 60);
+    doc.text(`Phone: ${receipt.customerPhone}`, 20, 70);
+    doc.text(`Branch: ${receipt.branchName}`, 20, 80);
+    doc.text(`Payment Method: ${receipt.paymentMethod}`, 20, 90);
+    
+    if (receipt.timeTaken) {
+      doc.text(`Order Time: ${receipt.timeTaken}`, 20, 100);
+    }
+    
+    const tableColumn = ["Item", "Price", "Quantity", "Total"];
+    const tableRows = receipt.items.map(item => [
+      item.name,
+      `$${item.price.toFixed(2)}`,
+      item.quantity.toString(),
+      `$${(item.price * item.quantity).toFixed(2)}`
+    ]);
+    
+    doc.autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 110,
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [139, 92, 246] },
+    });
+    
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    doc.text(`Total: $${receipt.total.toFixed(2)}`, 150, finalY, { align: 'right' });
+    
+    doc.setFontSize(10);
+    doc.text(`Thank you for your order!`, 105, finalY + 20, { align: 'center' });
+    doc.text(`${appSettings.appDescription}`, 105, finalY + 30, { align: 'center' });
+    
+    doc.save(`receipt_${receipt.tokenNumber}.pdf`);
+  };
+
   const value = {
     appSettings,
     updateAppSettings,
@@ -815,6 +887,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSelectedBranch,
     analyticsData,
     refreshAnalytics,
+    refreshOrders,
     isDarkMode,
     toggleTheme,
     addDiscount,
@@ -825,6 +898,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateInventory,
     checkInventoryLevels,
   };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+    </div>;
+  }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

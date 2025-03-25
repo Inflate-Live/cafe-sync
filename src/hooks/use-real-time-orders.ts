@@ -58,6 +58,12 @@ export const useRealTimeOrders = (branchId: string) => {
 
   // Update order lists when orders change
   useEffect(() => {
+    // Ensure orders is an array
+    if (!Array.isArray(orders)) {
+      console.error("Orders is not an array:", orders);
+      return;
+    }
+
     // Filter orders by branch and status
     const filteredPendingOrders = orders.filter(
       order => order.branchId === branchId && order.status === 'pending'
