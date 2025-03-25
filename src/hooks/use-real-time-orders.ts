@@ -110,7 +110,7 @@ export const useRealTimeOrders = (branchId: string) => {
       toast(`${newOrdersCount} New Order${newOrdersCount > 1 ? 's' : ''} Received`, {
         description: "Check the pending orders tab",
         icon: <Bell className="h-4 w-4" />,
-        duration: 5000,
+        duration: 5000
       });
     } else {
       setNewOrderReceived(false);
