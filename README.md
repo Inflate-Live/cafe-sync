@@ -1,69 +1,166 @@
-# Welcome to your Lovable project
 
-## Project info
+# Restaurant Management System
 
-**URL**: https://lovable.dev/projects/c679684b-36e3-4f16-a442-c23e813d13da
+A comprehensive restaurant management solution with kitchen display, order management, inventory tracking, and more.
 
-## How can I edit this code?
+![Restaurant Management System](https://example.com/screenshot.png)
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+- **Multi-branch Management**: Manage multiple restaurant locations from a single interface
+- **Real-time Order Processing**: Instantly receive and process customer orders
+- **Kitchen Display System**: Dedicated interface for kitchen staff to manage cooking workflow
+- **Inventory Management**: Track stock levels and get low inventory alerts
+- **Menu Management**: Easily update menu items, categories, and pricing
+- **Receipt Generation**: Generate and print professional receipts
+- **Customer Feedback**: Collect and analyze customer ratings and feedback
+- **Sales Reporting**: Generate detailed reports on sales performance
+- **Secure Authentication**: Role-based access control for different staff members
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/c679684b-36e3-4f16-a442-c23e813d13da) and start prompting.
+## Technology Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- React with TypeScript
+- Tailwind CSS for styling
+- React Query for server state management
+- Server-side storage implementation (in-memory)
+- PDF generation for receipts and reports
 
-**Use your preferred IDE**
+## Installation
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Follow these steps to set up the project locally:
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```bash
+# Step 1: Clone the repository
+git clone <repository-url>
 
-Follow these steps:
+# Step 2: Navigate to the project directory
+cd restaurant-management-system
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Step 3: Install dependencies
+npm install
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application should now be running at http://localhost:8080
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Project Structure
 
-**Use GitHub Codespaces**
+```
+src/
+├── components/         # UI components
+│   ├── admin/          # Admin panel components
+│   ├── layout/         # Layout components (header, footer, etc.)
+│   ├── menu/           # Menu-related components
+│   └── ui/             # Reusable UI components
+├── context/            # React context for global state
+├── hooks/              # Custom React hooks
+├── lib/                # Utility functions
+├── pages/              # Main application pages
+└── types/              # TypeScript type definitions
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Usage Instructions
 
-## What technologies are used for this project?
+### Kitchen Panel
 
-This project is built with .
+1. Access the Kitchen Panel via the `/kitchen` route
+2. Enter the kitchen password (configured in settings)
+3. Select the appropriate branch
+4. Process incoming orders by accepting, cooking, and completing them
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Admin Panel
 
-## How can I deploy this project?
+1. Access the Admin Panel via the `/admin` route
+2. Configure system settings including:
+   - Branch information
+   - Menu items and categories
+   - Kitchen password
+   - Receipt settings
+   - Inventory thresholds
 
-Simply open [Lovable](https://lovable.dev/projects/c679684b-36e3-4f16-a442-c23e813d13da) and click on Share -> Publish.
+### Order Processing
 
-## I want to use a custom domain - is that possible?
+1. Create new orders from the main interface
+2. Select menu items, specify quantities
+3. Enter customer information
+4. Submit order to kitchen
+5. Generate receipt once order is complete
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+## Data Storage
+
+The system uses a server-side storage implementation with folder structure:
+
+- `Storage-Confidential/orders`: All customer orders
+- `Storage-Confidential/menu`: Menu items and categories
+- `Storage-Confidential/branches`: Branch information
+- `Storage-Confidential/settings`: System settings
+- `Storage-Confidential/receipts`: Receipt data
+- `Storage-Confidential/ratings`: Customer feedback
+- `Storage-Confidential/inventory`: Inventory data
+
+## Advanced Configuration
+
+### Environment Variables
+
+Create a `.env` file in the root directory:
+
+```
+# Server Configuration
+SERVER_PORT=8080
+SERVER_HOST=localhost
+
+# Security
+AUTH_SECRET=your-secret-key
+KITCHEN_DEFAULT_PASSWORD=kitchen123
+
+# Other Settings
+DEFAULT_CURRENCY=USD
+RECEIPT_FOOTER=Thank you for your business!
+```
+
+## Development
+
+### Building for Production
+
+```bash
+# Generate production build
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+### Running Tests
+
+```bash
+# Run unit tests
+npm test
+
+# Run end-to-end tests
+npm run e2e
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Orders not updating in real-time**
+   - Check your network connection
+   - Ensure the server is running properly
+   - Try refreshing the page
+
+2. **Receipt printing issues**
+   - Verify printer connection
+   - Check receipt template configuration
+   - Ensure correct printer settings
+
+3. **Authentication problems**
+   - Clear browser cache and cookies
+   - Reset passwords in the Admin Panel
+   - Check for correct permission settings
+
+## License
+
+[MIT License](LICENSE)
