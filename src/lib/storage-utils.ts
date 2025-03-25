@@ -1,7 +1,7 @@
 
 /**
- * A utility for managing data storage in a structured folder system
- * All data is stored in server-side storage instead of localStorage
+ * A utility for managing data storage in a structured server-side folder system
+ * All data is stored in server memory instead of localStorage
  */
 
 // Main storage folder name
@@ -29,70 +29,49 @@ const folders: StorageFolders = {
   inventory: `${STORAGE_ROOT}/inventory`,
 };
 
-// In-memory cache to reduce server calls
-const memoryCache: Record<string, any> = {};
-
-/**
- * Server-side storage implementation (simulated)
- * In a real application, this would make API calls to a backend server
- */
-const serverStorage = {
-  // Store data 
-  setItem: async (key: string, value: string): Promise<void> => {
-    // Simulate server call with artificial delay
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // For now, we're still using localStorage, but in a real app
-        // this would be an API call to store data on the server
-        localStorage.setItem(key, value);
-        // Update the in-memory cache
-        memoryCache[key] = value;
-        console.log(`[SERVER] Data saved to ${key}`);
-        resolve();
-      }, 100);
-    });
-  },
+// Server-side storage implementation (in-memory)
+const serverStorage = (() => {
+  // Use a closure to create a private in-memory database
+  const storageData: Record<string, string> = {};
   
-  // Retrieve data
-  getItem: async (key: string): Promise<string | null> => {
-    // Use cache if available
-    if (memoryCache[key]) {
-      console.log(`[SERVER] Retrieved from cache: ${key}`);
-      return memoryCache[key];
-    }
+  return {
+    // Store data in memory
+    setItem: async (key: string, value: string): Promise<void> => {
+      // Simulate server call with artificial delay
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          storageData[key] = value;
+          console.log(`[SERVER] Data saved to ${key}`);
+          resolve();
+        }, 100);
+      });
+    },
     
-    // Simulate server call with artificial delay
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // For now, we're still using localStorage, but in a real app
-        // this would be an API call to fetch data from the server
-        const data = localStorage.getItem(key);
-        // Update cache
-        if (data) {
-          memoryCache[key] = data;
-        }
-        console.log(`[SERVER] Data retrieved from ${key}`);
-        resolve(data);
-      }, 100);
-    });
-  },
-  
-  // Delete data
-  removeItem: async (key: string): Promise<void> => {
-    // Simulate server call with artificial delay
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // For now, we're still using localStorage, but in a real app
-        // this would be an API call to delete data on the server
-        localStorage.removeItem(key);
-        // Update cache
-        delete memoryCache[key];
-        console.log(`[SERVER] Data removed from ${key}`);
-        resolve();
-      }, 100);
-    });
-  }
-};
+    // Retrieve data from memory
+    getItem: async (key: string): Promise<string | null> => {
+      // Simulate server call with artificial delay
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const data = storageData[key] || null;
+          console.log(`[SERVER] Data retrieved from ${key}`);
+          resolve(data);
+        }, 100);
+      });
+    },
+    
+    // Delete data from memory
+    removeItem: async (key: string): Promise<void> => {
+      // Simulate server call with artificial delay
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          delete storageData[key];
+          console.log(`[SERVER] Data removed from ${key}`);
+          resolve();
+        }, 100);
+      });
+    }
+  };
+})();
 
 /**
  * Save data to a specific folder on the server
@@ -164,6 +143,9 @@ export const clearAllStorage = async (): Promise<void> => {
   console.log('All server storage cleared');
 };
 
+// In-memory cache for subscriptions to reduce polling loads
+const memoryCache: Record<string, any> = {};
+
 /**
  * Subscribe to data changes in a specific folder
  * Returns an unsubscribe function
@@ -181,7 +163,13 @@ export const subscribeToFolder = <T>(
     
     try {
       const data = await getFromFolder<T>(folderKey, defaultValue);
-      callback(data);
+      
+      // Only call callback if data changed to reduce unnecessary renders
+      const currentDataJSON = JSON.stringify(data);
+      if (memoryCache[folderKey] !== currentDataJSON) {
+        memoryCache[folderKey] = currentDataJSON;
+        callback(data);
+      }
     } catch (error) {
       console.error(`Error in subscription to ${folderKey}:`, error);
     }
