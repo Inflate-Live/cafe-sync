@@ -29,11 +29,16 @@ function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    minWidth: 800,
+    minHeight: 600,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js')
-    }
+    },
+    show: false,
+    autoHideMenuBar: true,
+    backgroundColor: '#f1f5f9' // Light background color
   });
 
   // Load the app
@@ -44,6 +49,11 @@ function createWindow() {
   });
   
   mainWindow.loadURL(startUrl);
+  
+  // Show window when ready to avoid flash
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
   
   // Open DevTools in development mode
   if (process.env.NODE_ENV === 'development') {
