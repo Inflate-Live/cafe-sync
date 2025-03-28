@@ -2,11 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import Logo from '../ui/logo';
 import NavLink from '../ui/nav-link';
-import { Menu, X, Coffee, Utensils, Settings } from 'lucide-react';
+import { Menu, X, Coffee, Utensils, Settings, ExternalLink, GitHub } from 'lucide-react';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const isElectron = window.navigator.userAgent.toLowerCase().indexOf('electron') > -1;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -39,6 +40,27 @@ const Header: React.FC = () => {
           <NavLink to="/order"><Coffee className="mr-1" size={16} /> Order</NavLink>
           <NavLink to="/kitchen"><Utensils className="mr-1" size={16} /> Kitchen</NavLink>
           <NavLink to="/admin"><Settings className="mr-1" size={16} /> Admin</NavLink>
+          
+          {!isElectron && (
+            <>
+              <a 
+                href="https://github.com/Inflate-Live/cafe-verse-sync" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="px-4 py-2 rounded-lg transition-colors duration-200 text-foreground hover:text-primary hover:bg-muted/50 flex items-center"
+              >
+                <GitHub className="mr-1" size={16} /> GitHub
+              </a>
+              <a 
+                href="https://cafe-verse-sync.lovable.app" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="px-4 py-2 rounded-lg transition-colors duration-200 text-foreground hover:text-primary hover:bg-muted/50 flex items-center"
+              >
+                <ExternalLink className="mr-1" size={16} /> Demo
+              </a>
+            </>
+          )}
         </nav>
 
         {/* Mobile Menu Button */}
@@ -78,6 +100,31 @@ const Header: React.FC = () => {
               <span>Admin Panel</span>
             </div>
           </NavLink>
+          
+          {!isElectron && (
+            <>
+              <a 
+                href="https://github.com/Inflate-Live/cafe-verse-sync" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center px-4 py-2 text-foreground hover:text-primary"
+                onClick={closeMenu}
+              >
+                <GitHub className="mr-2" size={18} />
+                <span>GitHub Repository</span>
+              </a>
+              <a 
+                href="https://cafe-verse-sync.lovable.app" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center px-4 py-2 text-foreground hover:text-primary"
+                onClick={closeMenu}
+              >
+                <ExternalLink className="mr-2" size={18} />
+                <span>Live Demo</span>
+              </a>
+            </>
+          )}
         </nav>
       </div>
     </header>
