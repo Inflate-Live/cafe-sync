@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Footer from '@/components/layout/footer';
 import { useAppContext } from '@/context/AppContext';
@@ -6,7 +5,7 @@ import Header from '@/components/layout/header';
 import Dashboard from '@/components/dashboard/dashboard';
 import Hero from '@/components/home/hero';
 import { Button } from '@/components/ui/button';
-import { GitHub, ExternalLink } from 'lucide-react';
+import { github, ExternalLink } from 'lucide-react';
 
 const Index = () => {
   const { isDarkMode, toggleTheme } = useAppContext();
@@ -38,7 +37,7 @@ const Index = () => {
             <div className="flex flex-wrap justify-center gap-6">
               <a href="https://github.com/Inflate-Live/cafe-verse-sync" target="_blank" rel="noopener noreferrer">
                 <Button size="lg" variant="outline" className="flex items-center gap-2">
-                  <GitHub size={20} />
+                  <github size={20} />
                   View on GitHub
                 </Button>
               </a>

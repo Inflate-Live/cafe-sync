@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import Logo from '../ui/logo';
 import NavLink from '../ui/nav-link';
-import { Menu, X, Coffee, Utensils, Settings, ExternalLink, GitHub } from 'lucide-react';
+import { Menu, X, Coffee, Utensils, Settings, ExternalLink, github } from 'lucide-react';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -49,7 +48,7 @@ const Header: React.FC = () => {
                 rel="noopener noreferrer"
                 className="px-4 py-2 rounded-lg transition-colors duration-200 text-foreground hover:text-primary hover:bg-muted/50 flex items-center"
               >
-                <GitHub className="mr-1" size={16} /> GitHub
+                <github className="mr-1" size={16} /> GitHub
               </a>
               <a 
                 href="https://cafe-verse-sync.lovable.app" 
@@ -110,7 +109,7 @@ const Header: React.FC = () => {
                 className="flex items-center px-4 py-2 text-foreground hover:text-primary"
                 onClick={closeMenu}
               >
-                <GitHub className="mr-2" size={18} />
+                <github className="mr-2" size={18} />
                 <span>GitHub Repository</span>
               </a>
               <a 
