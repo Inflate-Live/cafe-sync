@@ -29,10 +29,11 @@
     ]
   },
   "linux": {
-    "target": [
-      "deb",
-      "AppImage"
-    ],
+    "target": ["AppImage", "deb"],
     "category": "Office"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
   }
 }

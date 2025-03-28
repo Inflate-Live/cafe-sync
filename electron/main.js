@@ -53,7 +53,7 @@ function createWindow() {
 
 // IPC handlers for storage operations
 function setupIpcHandlers() {
-  // Save data to file
+  // Save data to File
   ipcMain.handle('storage:setItem', async (event, key, value) => {
     try {
       const filePath = path.join(storageDir, key.replace(/\//g, path.sep));
