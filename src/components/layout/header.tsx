@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import Logo from '../ui/logo';
 import NavLink from '../ui/nav-link';
-import { Menu, X, Coffee, Utensils, Settings, ExternalLink, github } from 'lucide-react';
+import { Menu, X, Coffee, Utensils, Settings, ExternalLink, Github, Home } from 'lucide-react';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -35,20 +36,21 @@ const Header: React.FC = () => {
         
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-1">
-          <NavLink to="/">Dashboard</NavLink>
+          <NavLink to="/"><Home className="mr-1" size={16} /> Dashboard</NavLink>
           <NavLink to="/order"><Coffee className="mr-1" size={16} /> Order</NavLink>
           <NavLink to="/kitchen"><Utensils className="mr-1" size={16} /> Kitchen</NavLink>
           <NavLink to="/admin"><Settings className="mr-1" size={16} /> Admin</NavLink>
           
           {!isElectron && (
             <>
+              <NavLink to="/welcome"><Home className="mr-1" size={16} /> Welcome</NavLink>
               <a 
                 href="https://github.com/Inflate-Live/cafe-verse-sync" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="px-4 py-2 rounded-lg transition-colors duration-200 text-foreground hover:text-primary hover:bg-muted/50 flex items-center"
               >
-                <github className="mr-1" size={16} /> GitHub
+                <Github className="mr-1" size={16} /> GitHub
               </a>
               <a 
                 href="https://cafe-verse-sync.lovable.app" 
@@ -102,6 +104,12 @@ const Header: React.FC = () => {
           
           {!isElectron && (
             <>
+              <NavLink to="/welcome" onClick={closeMenu}>
+                <div className="flex items-center">
+                  <Home className="mr-2" size={18} />
+                  <span>Welcome Page</span>
+                </div>
+              </NavLink>
               <a 
                 href="https://github.com/Inflate-Live/cafe-verse-sync" 
                 target="_blank" 
@@ -109,7 +117,7 @@ const Header: React.FC = () => {
                 className="flex items-center px-4 py-2 text-foreground hover:text-primary"
                 onClick={closeMenu}
               >
-                <github className="mr-2" size={18} />
+                <Github className="mr-2" size={18} />
                 <span>GitHub Repository</span>
               </a>
               <a 

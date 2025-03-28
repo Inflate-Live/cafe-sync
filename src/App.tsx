@@ -13,6 +13,7 @@ const Index = lazy(() => import("./pages/Index"));
 const Order = lazy(() => import("./pages/Order"));
 const Kitchen = lazy(() => import("./pages/Kitchen"));
 const Admin = lazy(() => import("./pages/Admin"));
+const Marketing = lazy(() => import("./pages/Marketing"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const RatingModal = lazy(() => import("./components/feedback/rating-modal"));
 
@@ -50,6 +51,7 @@ const App = () => {
                 <Route path="/order" element={<Order />} />
                 <Route path="/kitchen" element={<Kitchen />} />
                 <Route path="/admin" element={<Admin />} />
+                <Route path="/welcome" element={<Marketing />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
